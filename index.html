@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#1f1f1f;
+      --panel:#2a2a2a;
+      --btn:#3a3a3a;
+      --btn-hover:#4a4a4a;
+      --accent:#4f8cff;
+      --text:#ffffff;
+      --muted:#bfbfbf;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Segoe UI, Roboto, Arial, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+    }
+    .app{
+      display:grid;
+      grid-template-columns: 1fr 280px;
+      gap:12px;
+      width: min(980px, 95vw);
+      padding:20px;
+    }
+    .calc{
+      background:var(--panel);
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 10px 25px rgba(0,0,0,.35);
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:12px 16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .mode{
+      font-size:14px;
+      color:var(--muted);
+    }
+    .display{
+      padding:24px 16px 8px;
+      text-align:right;
+    }
+    .expression{
+      min-height:24px;
+      color:var(--muted);
+      font-size:16px;
+      word-break:break-all;
+    }
+    .value{
+      font-size:48px;
+      line-height:1.2;
+      word-break:break-all;
+    }
+    .keys{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+      padding:16px;
+    }
+    button.key{
+      appearance:none;
+      border:none;
+      border-radius:8px;
+      padding:16px;
+      background:var(--btn);
+      color:var(--text);
+      font-size:18px;
+      cursor:pointer;
+      transition:background .15s, transform .02s;
+      user-select:none;
+    }
+    button.key:active{ transform:scale(0.98) }
+    button.key:hover{ background:var(--btn-hover) }
+    .key.op{ color:#d6e2ff }
+    .key.equals{
+      background:var(--accent);
+      color:#0b0b0b;
+      font-weight:600;
+    }
+    .key.wide{ grid-column: span 2 }
+    .key.muted{ color:var(--muted) }
+    .sidebar{
+      background:var(--panel);
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 10px 25px rgba(0,0,0,.35);
+      display:flex;
+      flex-direction:column;
+    }
+    .tabs{
+      display:flex;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .tab{
+      flex:1;
+      text-align:center;
+      padding:12px;
+      font-size:14px;
+      color:var(--muted);
+      cursor:pointer;
+    }
+    .tab.active{
+      color:var(--text);
+      border-bottom:2px solid var(--accent);
+    }
+    .history{
+      padding:12px;
+      overflow:auto;
+      max-height:520px;
+    }
+    .hist-item{
+      padding:10px 8px;
+      border-radius:8px;
+      margin-bottom:8px;
+      background:#272727;
+    }
+    .hist-exp{
+      color:var(--muted);
+      font-size:14px;
+      margin-bottom:4px;
+      word-break:break-all;
+    }
+    .hist-res{
+      font-size:18px;
+    }
+    .empty{
+      color:var(--muted);
+      text-align:center;
+      padding:24px;
+    }
+    @media (max-width:900px){
+      .app{ grid-template-columns:1fr }
+      .sidebar{ order:-1 }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="calc">
+      <div class="topbar">
+        <div class="mode">Standard</div>
+      </div>
+      <div class="display">
+        <div id="expression" class="expression"></div>
+        <div id="value" class="value">0</div>
+      </div>
+      <div class="keys">
+        <!-- Row 1 -->
+        <button class="key muted" data-action="mc">MC</button>
+        <button class="key muted" data-action="mr">MR</button>
+        <button class="key muted" data-action="mplus">M+</button>
+        <button class="key muted" data-action="mminus">M-</button>
+
+        <!-- Row 2 -->
+        <button class="key muted" data-action="percent">%</button>
+        <button class="key muted" data-action="sqrt">√</button>
+        <button class="key muted" data-action="square">x²</button>
+        <button class="key muted" data-action="recip">1/x</button>
+
+        <!-- Row 3 -->
+        <button class="key muted" data-action="clear-entry">CE</button>
+        <button class="key muted" data-action="clear">C</button>
+        <button class="key muted" data-action="backspace">⌫</button>
+        <button class="key op" data-op="/">÷</button>
+
+        <!-- Row 4 -->
+        <button class="key" data-num="7">7</button>
+        <button class="key" data-num="8">8</button>
+        <button class="key" data-num="9">9</button>
+        <button class="key op" data-op="*">×</button>
+
+        <!-- Row 5 -->
+        <button class="key" data-num="4">4</button>
+        <button class="key" data-num="5">5</button>
+        <button class="key" data-num="6">6</button>
+        <button class="key op" data-op="-">−</button>
+
+        <!-- Row 6 -->
+        <button class="key" data-num="1">1</button>
+        <button class="key" data-num="2">2</button>
+        <button class="key" data-num="3">3</button>
+        <button class="key op" data-op="+">+</button>
+
+        <!-- Row 7 -->
+        <button class="key wide" data-num="0">0</button>
+        <button class="key" data-action="dot">.</button>
+        <button class="key equals" data-action="equals">=</button>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="tabs">
+        <div class="tab active">History</div>
+        <div class="tab">Memory</div>
+      </div>
+      <div id="history" class="history">
+        <div class="empty">No history yet</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const valEl = document.getElementById('value');
+    const expEl = document.getElementById('expression');
+    const historyEl = document.getElementById('history');
+
+    let display = '0';
+    let expression = '';
+    let lastOp = null;
+    let accumulator = null;
+    let justEvaluated = false;
+    let memory = 0;
+
+    function updateDisplay(){
+      valEl.textContent = display;
+      expEl.textContent = expression;
+    }
+
+    function addHistory(exp, res){
+      if (historyEl.querySelector('.empty')) {
+        historyEl.innerHTML = '';
+      }
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+      const e = document.createElement('div');
+      e.className = 'hist-exp';
+      e.textContent = exp + ' =';
+      const r = document.createElement('div');
+      r.className = 'hist-res';
+      r.textContent = res;
+      item.appendChild(e);
+      item.appendChild(r);
+      historyEl.prepend(item);
+    }
+
+    function inputNumber(n){
+      if (justEvaluated){ display = '0'; expression=''; lastOp=null; accumulator=null; justEvaluated=false; }
+      if (display === '0' && n !== '.') display = n;
+      else display += n;
+      updateDisplay();
+    }
+
+    function setOp(op){
+      if (lastOp && accumulator !== null){
+        // chain operation
+        const res = operate(accumulator, parseFloat(display), lastOp);
+        accumulator = res;
+        display = String(trimFloat(res));
+      } else {
+        accumulator = parseFloat(display);
+      }
+      lastOp = op;
+      expression = `${trimEnd(expression)} ${display} ${symbolFor(op)}`;
+      display = '0';
+      updateDisplay();
+    }
+
+    function equals(){
+      if (lastOp === null || accumulator === null) return;
+      const b = parseFloat(display);
+      const res = operate(accumulator, b, lastOp);
+      const exp = `${trimEnd(expression)} ${display}`;
+      display = String(trimFloat(res));
+      expression = '';
+      lastOp = null;
+      accumulator = null;
+      justEvaluated = true;
+      updateDisplay();
+      addHistory(exp, display);
+    }
+
+    function clearAll(){
+      display = '0';
+      expression = '';
+      lastOp = null;
+      accumulator = null;
+      justEvaluated = false;
+      updateDisplay();
+    }
+
+    function clearEntry(){
+      display = '0';
+      updateDisplay();
+    }
+
+    function backspace(){
+      if (justEvaluated) return;
+      if (display.length <= 1) display = '0';
+      else display = display.slice(0, -1);
+      updateDisplay();
+    }
+
+    function dot(){
+      if (justEvaluated){ display='0'; justEvaluated=false; }
+      if (!display.includes('.')) display += '.';
+      updateDisplay();
+    }
+
+    function percent(){
+      // percent of the accumulator, like Windows calc: a op (a*b/100)
+      const x = parseFloat(display);
+      if (accumulator !== null){
+        const p = accumulator * x / 100;
+        display = String(trimFloat(p));
+      } else {
+        display = String(trimFloat(x / 100));
+      }
+      updateDisplay();
+    }
+
+    function sqrt(){
+      const x = parseFloat(display);
+      if (x < 0) { display = 'Invalid input'; justEvaluated=true; return updateDisplay(); }
+      display = String(trimFloat(Math.sqrt(x)));
+      updateDisplay();
+    }
+    function square(){
+      const x = parseFloat(display);
+      display = String(trimFloat(x*x));
+      updateDisplay();
+    }
+    function recip(){
+      const x = parseFloat(display);
+      if (x === 0){ display = 'Cannot divide by zero'; justEvaluated=true; return updateDisplay(); }
+      display = String(trimFloat(1/x));
+      updateDisplay();
+    }
+
+    function operate(a,b,op){
+      switch(op){
+        case '+': return a+b;
+        case '-': return a-b;
+        case '*': return a*b;
+        case '/': return b===0 ? Infinity : a/b;
+        default: return b;
+      }
+    }
+
+    function symbolFor(op){
+      return ({'+': '+', '-': '−', '*': '×', '/': '÷'})[op] || op;
+    }
+
+    function trimFloat(n){
+      // limit to 12 significant-ish digits, remove trailing zeros
+      const s = String(n);
+      if (s.includes('e')) return n; // scientific notation
+      let out = Number.parseFloat(n.toFixed(12));
+      return +out;
+    }
+
+    function trimEnd(s){
+      return (s||'').trim();
+    }
+
+    // Memory functions
+    function mc(){ memory = 0; }
+    function mr(){ display = String(trimFloat(memory)); updateDisplay(); }
+    function mplus(){ memory += parseFloat(display) || 0; }
+    function mminus(){ memory -= parseFloat(display) || 0; }
+
+    // Wiring
+    document.querySelectorAll('button.key').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const num = btn.getAttribute('data-num');
+        const op = btn.getAttribute('data-op');
+        const act = btn.getAttribute('data-action');
+
+        if (num) return inputNumber(num);
+        if (op) return setOp(op);
+
+        if (act){
+          switch(act){
+            case 'equals': return equals();
+            case 'clear': return clearAll();
+            case 'clear-entry': return clearEntry();
+            case 'backspace': return backspace();
+            case 'dot': return dot();
+            case 'percent': return percent();
+            case 'sqrt': return sqrt();
+            case 'square': return square();
+            case 'recip': return recip();
+            case 'mc': return mc();
+            case 'mr': return mr();
+            case 'mplus': return mplus();
+            case 'mminus': return mminus();
+          }
+        }
+      });
+    });
+
+    // Keyboard support
+    window.addEventListener('keydown', (e)=>{
+      if (e.key.match(/[0-9]/)) inputNumber(e.key);
+      else if (e.key === '.') dot();
+      else if (['+','-','*','/'].includes(e.key)) setOp(e.key);
+      else if (e.key === 'Enter' || e.key === '=') equals();
+      else if (e.key === 'Backspace') backspace();
+      else if (e.key.toLowerCase() === 'c') clearAll();
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
